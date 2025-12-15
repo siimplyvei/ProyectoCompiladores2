@@ -3,6 +3,9 @@ package minic;
 import minic.semantic.SemanticVisitor;
 import org.antlr.v4.runtime.*;
 import org.antlr.v4.runtime.tree.*;
+import minic.ir.IRGenerator;
+import minic.mips.MIPSGenerator;
+
 
 public class Main {
 
@@ -28,5 +31,19 @@ public class Main {
         semantic.visit(tree);
 
         System.out.println("✔ Analisis semantico finalizado sin errores");
+
+        System.out.println("\n=== IR (Three Address Code) ===");
+        IRGenerator ir = new IRGenerator();
+        ir.visit(tree);
+
+        for (var instr : ir.getInstructions()) {
+            System.out.println(instr);
+        }
+
+        System.out.println("\n=== GENERANDO MIPS ===");
+        MIPSGenerator mips = new MIPSGenerator(ir.getInstructions());
+        mips.generate("output.s");
+        System.out.println("✔ Archivo output.s generado");
+
     }
 }

@@ -1,4 +1,4 @@
-grammar minic;
+grammar MiniC;
 
 // --------- PARSER ---------
 
@@ -47,6 +47,7 @@ statement
     : compoundStmt
     | ifStmt
     | whileStmt
+    | forStmt
     | returnStmt
     | assignStmt
     | exprStmt
@@ -61,7 +62,7 @@ whileStmt
     ;
 
 assignStmt
-    : lvalue '=' expr ';'
+    : lvalue '=' expr
     ;
 
 returnStmt
@@ -86,6 +87,27 @@ logicalAndExpr
 
 equalityExpr
     : relationalExpr (('==' | '!=') relationalExpr)*
+    ;
+
+forStmt
+    : 'for' '(' forInit ';' forCond ';' forStep ')' statement
+    ;
+
+forInit
+    : assignStmt
+    | expr
+    | /* vacío */
+    ;
+
+forCond
+    : expr
+    | /* vacío */
+    ;
+
+forStep
+    : assignStmt
+    | expr
+    | /* vacío */
     ;
 
 relationalExpr
@@ -123,6 +145,7 @@ call
 lvalue
     : Identifier ('[' expr ']')*
     ;
+
 
 // --------- LEXER ---------
 
