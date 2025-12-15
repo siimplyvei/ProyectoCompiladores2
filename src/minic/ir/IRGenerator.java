@@ -18,19 +18,56 @@ public class IRGenerator extends MiniCBaseVisitor<String> {
 
     @Override
     public String visitPrimary(MiniCParser.PrimaryContext ctx) {
+
+        // llamada a función
+        if (ctx.argList() != null) {
+            String fname = ctx.Identifier().getText();
+            int argc = 0;
+
+            for (MiniCParser.ExprContext e : ctx.argList().expr()) {
+                String arg = visit(e);
+                instructions.add(new IRParam(arg));
+                argc++;
+            }
+
+            IRTemp ret = new IRTemp();
+            instructions.add(new IRCall(fname, argc, ret));
+            return ret.toString();
+        }
+
+        // lvalue (variables y arreglos)
+        if (ctx.lvalue() != null) {
+            return visit(ctx.lvalue());
+        }
+
+        // literales
         if (ctx.IntegerConst() != null) {
             return ctx.IntegerConst().getText();
         }
 
-        if (ctx.lvalue() != null) {
-            return ctx.lvalue().Identifier().getText();
+        if (ctx.StringLiteral() != null) {
+            return ctx.StringLiteral().getText();
         }
 
+        // paréntesis
         if (ctx.expr() != null) {
             return visit(ctx.expr());
         }
 
         return null;
+    }
+
+    @Override
+    public String visitLvalue(MiniCParser.LvalueContext ctx) {
+
+        // variable simple: a, b, x
+        if (ctx.expr().isEmpty()) {
+            return ctx.Identifier().getText();
+        }
+
+        // --- ARREGLOS (se implementará completo en el siguiente paso) ---
+        // Por ahora devolvemos algo simbólico para no romper IR
+        return ctx.Identifier().getText();
     }
 
     @Override
@@ -181,6 +218,18 @@ public class IRGenerator extends MiniCBaseVisitor<String> {
         instructions.add(new IRGoto(start));
         instructions.add(end);
 
+        return null;
+    }
+
+    @Override
+    public String visitFuncDef(MiniCParser.FuncDefContext ctx) {
+
+        String fname = ctx.Identifier().getText();
+        instructions.add(new IRFuncBegin(fname));
+
+        visit(ctx.compoundStmt());
+
+        instructions.add(new IRFuncEnd());
         return null;
     }
 }

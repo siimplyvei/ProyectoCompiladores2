@@ -47,11 +47,11 @@ public interface MiniCVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitFuncDef(MiniCParser.FuncDefContext ctx);
 	/**
-	 * Visit a parse tree produced by {@link MiniCParser#params}.
+	 * Visit a parse tree produced by {@link MiniCParser#paramList}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
-	T visitParams(MiniCParser.ParamsContext ctx);
+	T visitParamList(MiniCParser.ParamListContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link MiniCParser#param}.
 	 * @param ctx the parse tree
@@ -106,6 +106,12 @@ public interface MiniCVisitor<T> extends ParseTreeVisitor<T> {
 	 * @return the visitor result
 	 */
 	T visitExpr(MiniCParser.ExprContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link MiniCParser#argList}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitArgList(MiniCParser.ArgListContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link MiniCParser#logicalOrExpr}.
 	 * @param ctx the parse tree

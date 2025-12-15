@@ -3,7 +3,7 @@ grammar MiniC;
 // --------- PARSER ---------
 
 program
-    : (declaration | funcDef)* EOF
+    : (funcDef)+ EOF
     ;
 
 declaration
@@ -28,15 +28,15 @@ typeSpecifier
     ;
 
 funcDef
-    : typeSpecifier Identifier '(' params? ')' compoundStmt
+    : typeSpecifier Identifier '(' paramList? ')' compoundStmt
     ;
 
-params
+paramList
     : param (',' param)*
     ;
 
 param
-    : typeSpecifier declarator
+    : typeSpecifier Identifier
     ;
 
 compoundStmt
@@ -75,6 +75,10 @@ exprStmt
 
 expr
     : logicalOrExpr
+    ;
+
+argList
+    : expr (',' expr)*
     ;
 
 logicalOrExpr
@@ -128,14 +132,14 @@ unaryExpr
     ;
 
 primary
-    : IntegerConst
+    : Identifier '(' argList? ')'
+    | '(' expr ')'
+    | lvalue
+    | IntegerConst
     | CharConst
     | StringLiteral
     | 'true'
     | 'false'
-    | '(' expr ')'
-    | lvalue
-    | call
     ;
 
 call
@@ -143,7 +147,9 @@ call
     ;
 
 lvalue
-    : Identifier ('[' expr ']')*
+    : Identifier
+    | Identifier '[' expr ']'
+    | Identifier '[' expr ']' '[' expr ']'
     ;
 
 

@@ -68,15 +68,15 @@ public interface MiniCListener extends ParseTreeListener {
 	 */
 	void exitFuncDef(MiniCParser.FuncDefContext ctx);
 	/**
-	 * Enter a parse tree produced by {@link MiniCParser#params}.
+	 * Enter a parse tree produced by {@link MiniCParser#paramList}.
 	 * @param ctx the parse tree
 	 */
-	void enterParams(MiniCParser.ParamsContext ctx);
+	void enterParamList(MiniCParser.ParamListContext ctx);
 	/**
-	 * Exit a parse tree produced by {@link MiniCParser#params}.
+	 * Exit a parse tree produced by {@link MiniCParser#paramList}.
 	 * @param ctx the parse tree
 	 */
-	void exitParams(MiniCParser.ParamsContext ctx);
+	void exitParamList(MiniCParser.ParamListContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link MiniCParser#param}.
 	 * @param ctx the parse tree
@@ -167,6 +167,16 @@ public interface MiniCListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitExpr(MiniCParser.ExprContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link MiniCParser#argList}.
+	 * @param ctx the parse tree
+	 */
+	void enterArgList(MiniCParser.ArgListContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link MiniCParser#argList}.
+	 * @param ctx the parse tree
+	 */
+	void exitArgList(MiniCParser.ArgListContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link MiniCParser#logicalOrExpr}.
 	 * @param ctx the parse tree

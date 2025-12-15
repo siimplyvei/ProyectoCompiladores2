@@ -89,13 +89,13 @@ public class MiniCBaseListener implements MiniCListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void enterParams(MiniCParser.ParamsContext ctx) { }
+	@Override public void enterParamList(MiniCParser.ParamListContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void exitParams(MiniCParser.ParamsContext ctx) { }
+	@Override public void exitParamList(MiniCParser.ParamListContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
@@ -204,6 +204,18 @@ public class MiniCBaseListener implements MiniCListener {
 	 * <p>The default implementation does nothing.</p>
 	 */
 	@Override public void exitExpr(MiniCParser.ExprContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterArgList(MiniCParser.ArgListContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitArgList(MiniCParser.ArgListContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *

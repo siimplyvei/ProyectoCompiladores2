@@ -1,8 +1,11 @@
-int main() {
-    int i;
-    for (i = 1; i <= 3; i = i + 1) {
-        i = i + 1;
-    }
-    return i;
+int add(int a, int b) {
+    return a + b;
 }
+
+int main() {
+    int x;
+    x = add(3, 4);
+    return x;
+}
+
 

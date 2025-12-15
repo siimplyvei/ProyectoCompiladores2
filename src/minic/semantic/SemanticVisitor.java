@@ -19,7 +19,6 @@ public class SemanticVisitor extends MiniCBaseVisitor<String> {
     }
 
     // -------- FUNCIONES --------
-
     @Override
     public String visitFuncDef(MiniCParser.FuncDefContext ctx) {
         String returnType = ctx.typeSpecifier().getText();
@@ -35,8 +34,8 @@ public class SemanticVisitor extends MiniCBaseVisitor<String> {
 
         symtab.enterScope(); // scope función
 
-        if (ctx.params() != null) {
-            visit(ctx.params());
+        if (ctx.paramList() != null) {
+            visit(ctx.paramList());
         }
 
         visit(ctx.compoundStmt());
@@ -48,16 +47,10 @@ public class SemanticVisitor extends MiniCBaseVisitor<String> {
 
     @Override
     public String visitParam(MiniCParser.ParamContext ctx) {
-        String type = ctx.typeSpecifier().getText();
-        String name = ctx.declarator().getText();
-
-        VariableSymbol param = new VariableSymbol(name, type);
-        if (!symtab.define(param)) {
-            error("Parámetro redeclarado: " + name);
-        }
+        String name = ctx.Identifier().getText();
+        // registrar parámetro en la tabla de símbolos
         return null;
     }
-
     // -------- DECLARACIONES --------
 
     @Override

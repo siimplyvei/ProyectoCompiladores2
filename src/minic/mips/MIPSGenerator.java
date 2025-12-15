@@ -25,6 +25,8 @@ public class MIPSGenerator {
         return tempRegs.computeIfAbsent(temp, k -> "$t" + (tempCount++));
     }
 
+    private int paramIndex = 0;
+
     public void generate(String filename) throws IOException {
 
         emit(".text");
@@ -50,6 +52,27 @@ public class MIPSGenerator {
                 IRIfZ ifz = (IRIfZ) instr;
                 String cond = loadOperand(ifz.condition);
                 emit("beq " + cond + ", $zero, " + ifz.target.name);
+            } else if (instr instanceof IRFuncBegin) {
+                emit(((IRFuncBegin) instr).name + ":");
+                emit("addi $sp, $sp, -32");
+                emit("sw $ra, 28($sp)");
+            } else if (instr instanceof IRFuncEnd) {
+                emit("lw $ra, 28($sp)");
+                emit("addi $sp, $sp, 32");
+                emit("jr $ra");
+            } else if (instr instanceof IRParam) {
+                IRParam p = (IRParam) instr;
+                String reg = loadOperand(p.value);
+                emit("move $a" + paramIndex + ", " + reg);
+                paramIndex++;
+            } else if (instr instanceof IRCall) {
+                IRCall call = (IRCall) instr;
+                emit("jal " + call.funcName);
+                if (call.result != null) {
+                    String reg = getTempReg(call.result.toString());
+                    emit("move " + reg + ", $v0");
+                }
+                paramIndex = 0;
             }
         }
 
