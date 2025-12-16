@@ -5,6 +5,10 @@ import org.antlr.v4.runtime.tree.ParseTree;
 
 import java.util.ArrayList;
 import java.util.List;
+import minic.semantic.Symbol;
+import minic.semantic.ArraySymbol;
+import minic.semantic.ScopedSymbolTable;
+
 
 public class IRGenerator extends MiniCBaseVisitor<String> {
 
@@ -13,6 +17,20 @@ public class IRGenerator extends MiniCBaseVisitor<String> {
     public List<IRInstr> getInstructions() {
         return instructions;
     }
+
+    private int tempCount = 0;
+
+    private String newTemp() {
+        return "t" + (++tempCount);
+    }
+
+    private void emit(IRInstr instr) {
+        instructions.add(instr);
+    }
+
+    private boolean isLvalue = false;
+
+    private ScopedSymbolTable symtab = new ScopedSymbolTable();
 
     // ---------- EXPRESSIONS ----------
 
@@ -37,7 +55,11 @@ public class IRGenerator extends MiniCBaseVisitor<String> {
 
         // lvalue (variables y arreglos)
         if (ctx.lvalue() != null) {
-            return visit(ctx.lvalue());
+            boolean old = isLvalue;
+            isLvalue = false;      // primary SIEMPRE es rvalue
+            String v = visit(ctx.lvalue());
+            isLvalue = old;
+            return v;
         }
 
         // literales
@@ -54,20 +76,93 @@ public class IRGenerator extends MiniCBaseVisitor<String> {
             return visit(ctx.expr());
         }
 
-        return null;
+        return visitChildren(ctx);
     }
 
     @Override
     public String visitLvalue(MiniCParser.LvalueContext ctx) {
 
-        // variable simple: a, b, x
+        String name = ctx.Identifier().getText();
+
+        Symbol sym = symtab.lookup(name);
+
+        // variable simple
         if (ctx.expr().isEmpty()) {
-            return ctx.Identifier().getText();
+
+            if (isLvalue) {
+                IRTemp addr = new IRTemp();
+                emit(new IRAddrOf(addr, name));
+                return addr.toString();
+            } else {
+                IRTemp addr = new IRTemp();
+                IRTemp val  = new IRTemp();
+
+                emit(new IRAddrOf(addr, name));
+                emit(new IRLoad(val, addr.toString()));
+
+                return val.toString();
+            }
         }
 
-        // --- ARREGLOS (se implementará completo en el siguiente paso) ---
-        // Por ahora devolvemos algo simbólico para no romper IR
-        return ctx.Identifier().getText();
+        // ---- ARREGLOS ----
+
+        // 1D
+        if (ctx.expr().size() == 1) {
+
+            String index = visit(ctx.expr(0));
+
+            IRTemp offset = new IRTemp();
+            emit(new IRBinOp(offset, index, "*", "4"));
+
+            IRTemp base = new IRTemp();
+            emit(new IRAddrOf(base, name));
+
+            IRTemp addr = new IRTemp();
+            emit(new IRBinOp(addr, base.toString(), "+", offset.toString()));
+
+            if (isLvalue) {
+                return addr.toString();
+            } else {
+                IRTemp val = new IRTemp();
+                emit(new IRLoad(val, addr.toString()));
+                return val.toString();
+            }
+        }
+
+        // 2D
+        if (ctx.expr().size() == 2) {
+
+            String i = visit(ctx.expr(0));
+            String j = visit(ctx.expr(1));
+
+            ArraySymbol arr = (ArraySymbol) sym;
+            int cols = arr.getSize(1);
+
+            IRTemp t1 = new IRTemp();
+            emit(new IRBinOp(t1, i, "*", String.valueOf(cols)));
+
+            IRTemp t2 = new IRTemp();
+            emit(new IRBinOp(t2, t1.toString(), "+", j));
+
+            IRTemp t3 = new IRTemp();
+            emit(new IRBinOp(t3, t2.toString(), "*", "4"));
+
+            IRTemp base = new IRTemp();
+            emit(new IRAddrOf(base, name));
+
+            IRTemp addr = new IRTemp();
+            emit(new IRBinOp(addr, base.toString(), "+", t3.toString()));
+
+            if (isLvalue) {
+                return addr.toString();
+            } else {
+                IRTemp val = new IRTemp();
+                emit(new IRLoad(val, addr.toString()));
+                return val.toString();
+            }
+        }
+
+        return null;
     }
 
     @Override
@@ -108,9 +203,14 @@ public class IRGenerator extends MiniCBaseVisitor<String> {
 
     @Override
     public String visitAssignStmt(MiniCParser.AssignStmtContext ctx) {
-        String var = ctx.lvalue().Identifier().getText();
-        String value = visit(ctx.expr());
-        instructions.add(new IRAssign(var, value));
+
+        String rhs = visit(ctx.expr());
+
+        isLvalue = true;
+        String lhsAddr = visit(ctx.lvalue());
+        isLvalue = false;
+
+        emit(new IRStore(lhsAddr, rhs));
         return null;
     }
 

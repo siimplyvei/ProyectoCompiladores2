@@ -16,6 +16,9 @@ public class SemanticVisitor extends MiniCBaseVisitor<String> {
     private ScopedSymbolTable symtab = new ScopedSymbolTable();
     private String currentFunctionReturnType = null;
     private String currentType;
+    public ScopedSymbolTable getSymbolTable() {
+        return symtab;
+    }
 
     // -------- PROGRAMA --------
 
