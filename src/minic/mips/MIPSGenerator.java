@@ -28,7 +28,17 @@ public class MIPSGenerator {
     private int paramIndex = 0;
     private String currentFunction = null;
 
+    private final StringBuilder data = new StringBuilder();
+    private final Map<String, Integer> globalSizes = new HashMap<>();
+
     public void generate(String filename) throws IOException {
+
+        collectGlobals();
+
+        emit(".data");
+        for (Map.Entry<String, Integer> e : globalSizes.entrySet()) {
+            emit(e.getKey() + ": .space " + e.getValue());
+        }
 
         emit(".text");
         emit(".globl main");
@@ -47,7 +57,10 @@ public class MIPSGenerator {
                 emit("j " + ((IRGoto) instr).target.name);
             } else if (instr instanceof IRIfZ) {
                 IRIfZ ifz = (IRIfZ) instr;
+
                 String cond = loadOperand(ifz.condition);
+
+                // normalizar condición: cond != 0
                 emit("beq " + cond + ", $zero, " + ifz.target.name);
             } else if (instr instanceof IRFuncBegin) {
                 IRFuncBegin fb = (IRFuncBegin) instr;
@@ -139,8 +152,35 @@ public class MIPSGenerator {
         }
     }
 
+    private void collectGlobals() {
+        boolean inFunction = false;
+
+        for (IRInstr instr : ir) {
+            if (instr instanceof IRFuncBegin) {
+                inFunction = true;
+            }
+            if (instr instanceof IRFuncEnd) {
+                inFunction = false;
+            }
+
+            if (!inFunction && instr instanceof IRAddrOf) {
+                IRAddrOf a = (IRAddrOf) instr;
+                globalSizes.putIfAbsent(a.name, 4);// mínimo 4 bytes
+            }
+        }
+    }
+
     private void emitAssign(IRAssign asg) {
         String src = loadOperand(asg.value);
+
+        // global
+        if (globalSizes.containsKey(asg.target)) {
+            emit("la $t8, " + asg.target);
+            emit("sw " + src + ", 0($t8)");
+            return;
+        }
+
+        // local
         int offset = frame.allocate(asg.target);
         emit("sw " + src + ", " + offset + "($sp)");
     }
@@ -152,8 +192,13 @@ public class MIPSGenerator {
 
     private void emitAddrOf(IRAddrOf a) {
         String dst = getTempReg(a.dst.toString());
-        int offset = frame.allocate(a.name);
-        emit("addi " + dst + ", $sp, " + offset);
+
+        if (globalSizes.containsKey(a.name)) {
+            emit("la " + dst + ", " + a.name);
+        } else {
+            int offset = frame.allocate(a.name);
+            emit("addi " + dst + ", $sp, " + offset);
+        }
     }
 
     private void emitLoad(IRLoad l) {
@@ -172,9 +217,9 @@ public class MIPSGenerator {
 
         // constante
         if (op.matches("\\d+")) {
-            String reg = "$t9";
-            emit("li " + reg + ", " + op);
-            return reg;
+            String r = getTempReg("const_" + op + "_" + tempCount);
+            emit("li " + r + ", " + op);
+            return r;
         }
 
         // temporal
@@ -182,8 +227,17 @@ public class MIPSGenerator {
             return getTempReg(op);
         }
 
-        // ❌ ELIMINAR acceso directo a variables
-        throw new RuntimeException("ERROR MIPS: operando inválido " + op);
+        // variable GLOBAL
+        if (globalSizes.containsKey(op)) {
+            emit("la $t8, " + op);
+            emit("lw $t8, 0($t8)");
+            return "$t8";
+        }
+
+        // variable LOCAL
+        int offset = frame.allocate(op);
+        emit("lw $t8, " + offset + "($sp)");
+        return "$t8";
     }
 
     private void emit(String s) {
