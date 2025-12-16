@@ -30,7 +30,12 @@ public class IRGenerator extends MiniCBaseVisitor<String> {
 
     private boolean isLvalue = false;
 
-    private ScopedSymbolTable symtab = new ScopedSymbolTable();
+    //private ScopedSymbolTable symtab = new ScopedSymbolTable();
+    private ScopedSymbolTable symtab;
+
+    public IRGenerator(ScopedSymbolTable symtab) {
+        this.symtab = symtab;
+    }
 
     // ---------- EXPRESSIONS ----------
 
@@ -105,6 +110,10 @@ public class IRGenerator extends MiniCBaseVisitor<String> {
         }
 
         // ---- ARREGLOS ----
+
+        if (!(sym instanceof ArraySymbol)) {
+            throw new RuntimeException("ERROR IR: " + name + " no es un arreglo");
+        }
 
         // 1D
         if (ctx.expr().size() == 1) {
@@ -211,6 +220,24 @@ public class IRGenerator extends MiniCBaseVisitor<String> {
         isLvalue = false;
 
         emit(new IRStore(lhsAddr, rhs));
+        return null;
+    }
+
+    @Override
+    public String visitCompoundStmt(MiniCParser.CompoundStmtContext ctx) {
+
+        symtab.enterScope();   // 👈 NUEVO BLOQUE
+
+        for (MiniCParser.DeclarationContext d : ctx.declaration()) {
+            visit(d);
+        }
+
+        for (MiniCParser.StatementContext s : ctx.statement()) {
+            visit(s);
+        }
+
+        symtab.exitScope();    // 👈 FIN BLOQUE
+
         return null;
     }
 
@@ -327,7 +354,9 @@ public class IRGenerator extends MiniCBaseVisitor<String> {
         String fname = ctx.Identifier().getText();
         instructions.add(new IRFuncBegin(fname));
 
+        symtab.enterScope();
         visit(ctx.compoundStmt());
+        symtab.exitScope();
 
         instructions.add(new IRFuncEnd());
         return null;

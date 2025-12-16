@@ -3,32 +3,32 @@
 main:
 addi $sp, $sp, -32
 sw $ra, 28($sp)
-main:
-addi $sp, $sp, -32
-sw $ra, 28($sp)
+addi $t0, $sp, -4
 li $t9, 1
-sw $t9, -4($sp)
+sw $t9, 0($t0)
 L1:
-lw $t8, -4($sp)
+addi $t1, $sp, -4
+lw $t2, 0($t1)
 li $t9, 3
-slt $t0, $t9, $t8
-xori $t0, $t0, 1
-beq $t0, $zero, L2
-lw $t8, -4($sp)
+slt $t3, $t9, $t2
+xori $t3, $t3, 1
+beq $t3, $zero, L2
+addi $t4, $sp, -4
+lw $t5, 0($t4)
 li $t9, 1
-add $t1, $t8, $t9
-sw $t1, -4($sp)
-lw $t8, -4($sp)
+add $t6, $t5, $t9
+addi $t7, $sp, -4
+sw $t6, 0($t7)
+addi $t8, $sp, -4
+lw $t9, 0($t8)
 li $t9, 1
-add $t2, $t8, $t9
-sw $t2, -4($sp)
+add $t0, $t9, $t9
+addi $t1, $sp, -4
+sw $t0, 0($t1)
 j L1
 L2:
-lw $t8, -4($sp)
-move $v0, $t8
-lw $ra, 28($sp)
-addi $sp, $sp, 32
-jr $ra
-lw $ra, 28($sp)
-addi $sp, $sp, 32
-jr $ra
+addi $t2, $sp, -4
+lw $t3, 0($t2)
+move $v0, $t3
+li $v0, 10
+syscall

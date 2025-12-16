@@ -33,7 +33,7 @@ public class Main {
         System.out.println("✔ Analisis semantico finalizado sin errores");
 
         System.out.println("\n=== IR (Three Address Code) ===");
-        IRGenerator ir = new IRGenerator();
+        IRGenerator ir = new IRGenerator(semantic.getSymbolTable());
         ir.visit(tree);
 
         for (var instr : ir.getInstructions()) {

@@ -22,20 +22,17 @@ public class MIPSGenerator {
     }
 
     private String getTempReg(String temp) {
-        return tempRegs.computeIfAbsent(temp, k -> "$t" + (tempCount++));
+        return tempRegs.computeIfAbsent(temp, k -> "$t" + (tempCount++ % 10));
     }
 
     private int paramIndex = 0;
+    private String currentFunction = null;
 
     public void generate(String filename) throws IOException {
 
         emit(".text");
         emit(".globl main");
-        emit("main:");
 
-        // Prologue
-        emit("addi $sp, $sp, -32");
-        emit("sw $ra, 28($sp)");
 
         for (IRInstr instr : ir) {
             if (instr instanceof IRBinOp) {
@@ -53,13 +50,24 @@ public class MIPSGenerator {
                 String cond = loadOperand(ifz.condition);
                 emit("beq " + cond + ", $zero, " + ifz.target.name);
             } else if (instr instanceof IRFuncBegin) {
-                emit(((IRFuncBegin) instr).name + ":");
+                IRFuncBegin fb = (IRFuncBegin) instr;
+                currentFunction = fb.name;
+
+                emit(fb.name + ":");
                 emit("addi $sp, $sp, -32");
                 emit("sw $ra, 28($sp)");
             } else if (instr instanceof IRFuncEnd) {
-                emit("lw $ra, 28($sp)");
-                emit("addi $sp, $sp, 32");
-                emit("jr $ra");
+
+                if ("main".equals(currentFunction)) {
+                    emit("li $v0, 10");
+                    emit("syscall");
+                } else {
+                    emit("lw $ra, 28($sp)");
+                    emit("addi $sp, $sp, 32");
+                    emit("jr $ra");
+                }
+
+                currentFunction = null;
             } else if (instr instanceof IRParam) {
                 IRParam p = (IRParam) instr;
                 String reg = loadOperand(p.value);
@@ -73,13 +81,14 @@ public class MIPSGenerator {
                     emit("move " + reg + ", $v0");
                 }
                 paramIndex = 0;
+            }else if (instr instanceof IRAddrOf) {
+                emitAddrOf((IRAddrOf) instr);
+            } else if (instr instanceof IRLoad) {
+                emitLoad((IRLoad) instr);
+            } else if (instr instanceof IRStore) {
+                emitStore((IRStore) instr);
             }
         }
-
-        // Epilogue
-        emit("lw $ra, 28($sp)");
-        emit("addi $sp, $sp, 32");
-        emit("jr $ra");
 
         try (FileWriter fw = new FileWriter(filename)) {
             fw.write(out.toString());
@@ -141,7 +150,26 @@ public class MIPSGenerator {
         emit("move $v0, " + value);
     }
 
+    private void emitAddrOf(IRAddrOf a) {
+        String dst = getTempReg(a.dst.toString());
+        int offset = frame.allocate(a.name);
+        emit("addi " + dst + ", $sp, " + offset);
+    }
+
+    private void emitLoad(IRLoad l) {
+        String dst = getTempReg(l.dst.toString());
+        String addr = loadOperand(l.addr);
+        emit("lw " + dst + ", 0(" + addr + ")");
+    }
+
+    private void emitStore(IRStore s) {
+        String addr = loadOperand(s.addr);
+        String val  = loadOperand(s.value);
+        emit("sw " + val + ", 0(" + addr + ")");
+    }
+
     private String loadOperand(String op) {
+
         // constante
         if (op.matches("\\d+")) {
             String reg = "$t9";
@@ -154,11 +182,8 @@ public class MIPSGenerator {
             return getTempReg(op);
         }
 
-        // variable
-        int offset = frame.allocate(op);
-        String reg = "$t8";
-        emit("lw " + reg + ", " + offset + "($sp)");
-        return reg;
+        // ❌ ELIMINAR acceso directo a variables
+        throw new RuntimeException("ERROR MIPS: operando inválido " + op);
     }
 
     private void emit(String s) {
