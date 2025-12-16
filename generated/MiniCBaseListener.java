@@ -17,6 +17,18 @@ public class MiniCBaseListener implements MiniCListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterGlobalDecl(MiniCParser.GlobalDeclContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitGlobalDecl(MiniCParser.GlobalDeclContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	@Override public void enterProgram(MiniCParser.ProgramContext ctx) { }
 	/**
 	 * {@inheritDoc}

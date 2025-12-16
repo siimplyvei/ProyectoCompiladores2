@@ -1,11 +1,12 @@
-int add(int a, int b) {
-    return a + b;
-}
+int a[10];
+int m[5][3];
 
 int main() {
-    int x;
-    x = add(3, 4);
-    return x;
+    int i, j;
+    a[i] = 3;
+    m[i][j] = a[i];
+    return 0;
 }
+
 
 

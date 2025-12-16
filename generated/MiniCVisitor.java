@@ -11,6 +11,12 @@ import org.antlr.v4.runtime.tree.ParseTreeVisitor;
  */
 public interface MiniCVisitor<T> extends ParseTreeVisitor<T> {
 	/**
+	 * Visit a parse tree produced by {@link MiniCParser#globalDecl}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitGlobalDecl(MiniCParser.GlobalDeclContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link MiniCParser#program}.
 	 * @param ctx the parse tree
 	 * @return the visitor result

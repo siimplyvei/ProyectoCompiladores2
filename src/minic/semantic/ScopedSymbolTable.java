@@ -4,6 +4,11 @@ public class ScopedSymbolTable {
 
     private Scope currentScope;
 
+    // ✅ CONSTRUCTOR: crea el scope global
+    public ScopedSymbolTable() {
+        currentScope = new Scope(null); // scope global
+    }
+
     public void enterScope() {
         currentScope = new Scope(currentScope);
     }
@@ -22,5 +27,9 @@ public class ScopedSymbolTable {
 
     public Scope getCurrentScope() {
         return currentScope;
+    }
+
+    public Symbol lookup(String name) {
+        return resolve(name);
     }
 }

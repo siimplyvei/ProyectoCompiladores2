@@ -1,13 +1,19 @@
 package minic.semantic;
 
-public abstract class Symbol {
+import java.util.*;
 
-    protected String name;
-    protected String type;
+public class Symbol {
+    public String name;
+    public String type;
+    public List<Integer> dimensions = new ArrayList<>();
 
     public Symbol(String name, String type) {
         this.name = name;
         this.type = type;
+    }
+
+    public boolean isArray() {
+        return !dimensions.isEmpty();
     }
 
     public String getName() {

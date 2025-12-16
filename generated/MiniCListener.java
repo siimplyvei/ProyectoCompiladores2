@@ -8,6 +8,16 @@ import org.antlr.v4.runtime.tree.ParseTreeListener;
  */
 public interface MiniCListener extends ParseTreeListener {
 	/**
+	 * Enter a parse tree produced by {@link MiniCParser#globalDecl}.
+	 * @param ctx the parse tree
+	 */
+	void enterGlobalDecl(MiniCParser.GlobalDeclContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link MiniCParser#globalDecl}.
+	 * @param ctx the parse tree
+	 */
+	void exitGlobalDecl(MiniCParser.GlobalDeclContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link MiniCParser#program}.
 	 * @param ctx the parse tree
 	 */

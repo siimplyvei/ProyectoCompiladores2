@@ -1,9 +1,12 @@
 grammar MiniC;
 
 // --------- PARSER ---------
+globalDecl
+    : typeSpecifier declaratorList ';'
+    ;
 
 program
-    : (funcDef)+ EOF
+    : (globalDecl | funcDef)+ EOF
     ;
 
 declaration
