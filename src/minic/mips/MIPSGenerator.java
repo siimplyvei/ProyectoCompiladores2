@@ -42,6 +42,7 @@ public class MIPSGenerator {
             case "printString": return "__print_string";
             case "readInt": return "__read_int";
             case "readChar": return "__read_char";
+            case "readString": return "__read_string";
             default: return name;
         }
     }
@@ -51,6 +52,7 @@ public class MIPSGenerator {
         collectGlobals();
 
         emit(".data");
+        emit("__strbuf: .space 256");
         for (Map.Entry<String, Integer> e : globalSizes.entrySet()) {
             emit(e.getKey() + ": .space " + e.getValue());
         }
@@ -104,12 +106,24 @@ public class MIPSGenerator {
             } else if (instr instanceof IRCall) {
                 IRCall call = (IRCall) instr;
 
-                String target = mapBuiltin(call.funcName);
-                emit("jal " + target);
+                if (call.funcName.equals("readString")) {
+                    emit("la $a0, __strbuf");
+                    emit("li $a1, 256");
+                    emit("jal __read_string");
 
-                if (call.result != null) {
-                    String reg = getTempReg(call.result.toString());
-                    emit("move " + reg + ", $v0");
+                    if (call.result != null) {
+                        String reg = getTempReg(call.result.toString());
+                        emit("la " + reg + ", __strbuf");
+                    }
+
+                } else {
+                    String target = mapBuiltin(call.funcName);
+                    emit("jal " + target);
+
+                    if (call.result != null) {
+                        String reg = getTempReg(call.result.toString());
+                        emit("move " + reg + ", $v0");
+                    }
                 }
 
                 paramIndex = 0;
@@ -152,6 +166,13 @@ public class MIPSGenerator {
 
         emit("__read_char:");
         emit("li $v0, 12");
+        emit("syscall");
+        emit("jr $ra");
+
+        emit("__read_string:");
+        emit("# $a0 = buffer");
+        emit("# $a1 = length");
+        emit("li $v0, 8");
         emit("syscall");
         emit("jr $ra");
     }

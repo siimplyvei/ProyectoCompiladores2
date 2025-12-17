@@ -1,6 +1,6 @@
 int main() {
-    int x;
-    x = readInt();
-    printInt(x);
+    string s;
+    s = readString();
+    printString(s);
     return 0;
 }
