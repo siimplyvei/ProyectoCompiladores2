@@ -37,6 +37,10 @@ public class IRGenerator extends MiniCBaseVisitor<String> {
         this.symtab = symtab;
     }
 
+    public ScopedSymbolTable getSymbolTable() {
+        return symtab;
+    }
+
     // ---------- EXPRESSIONS ----------
 
     @Override
@@ -169,6 +173,34 @@ public class IRGenerator extends MiniCBaseVisitor<String> {
                 emit(new IRLoad(val, addr.toString()));
                 return val.toString();
             }
+        }
+
+        return null;
+    }
+
+    @Override
+    public String visitDeclaration(MiniCParser.DeclarationContext ctx) {
+
+        String name = ctx.declaratorList().declarator(0).Identifier().getText();
+
+        Symbol sym = symtab.lookup(name);
+
+        // 👇 SI ESTAMOS EN SCOPE GLOBAL
+        if (symtab.isGlobalScope()) {
+
+            int size = 4; // int simple
+
+            if (sym instanceof ArraySymbol) {
+                ArraySymbol arr = (ArraySymbol) sym;
+
+                int total = 1;
+                for (int d = 0; d < arr.getDimensionCount(); d++) {
+                    total *= arr.getSize(d);
+                }
+                size = total * 4;
+            }
+
+            instructions.add(new IRGlobalDecl(name, size));
         }
 
         return null;

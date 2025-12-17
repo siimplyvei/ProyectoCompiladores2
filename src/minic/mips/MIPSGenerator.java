@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import minic.semantic.*;
 
 public class MIPSGenerator {
 
@@ -16,9 +17,12 @@ public class MIPSGenerator {
     private final StackFrame frame = new StackFrame();
     private final Map<String, String> tempRegs = new HashMap<>();
     private int tempCount = 0;
+    private final ScopedSymbolTable symtab;
 
-    public MIPSGenerator(List<IRInstr> ir) {
+
+    public MIPSGenerator(List<IRInstr> ir, ScopedSymbolTable symtab) {
         this.ir = ir;
+        this.symtab = symtab;
     }
 
     private String getTempReg(String temp) {
@@ -153,22 +157,30 @@ public class MIPSGenerator {
     }
 
     private void collectGlobals() {
-        boolean inFunction = false;
 
-        for (IRInstr instr : ir) {
-            if (instr instanceof IRFuncBegin) {
-                inFunction = true;
-            }
-            if (instr instanceof IRFuncEnd) {
-                inFunction = false;
+        for (Symbol s : symtab.getSymbols()) {
+
+            if (s instanceof FunctionSymbol) {
+                continue;
             }
 
-            if (!inFunction && instr instanceof IRAddrOf) {
-                IRAddrOf a = (IRAddrOf) instr;
-                globalSizes.putIfAbsent(a.name, 4);// mínimo 4 bytes
+            if (s instanceof ArraySymbol) {
+                ArraySymbol arr = (ArraySymbol) s;
+
+                int total = 1;
+                for (int d = 0; d < arr.getDimensionCount(); d++) {
+                    total *= arr.getSize(d);
+                }
+
+                globalSizes.put(s.getName(), total * 4);
+
+            } else {
+                // variable simple
+                globalSizes.put(s.getName(), 4);
             }
         }
     }
+
 
     private void emitAssign(IRAssign asg) {
         String src = loadOperand(asg.value);

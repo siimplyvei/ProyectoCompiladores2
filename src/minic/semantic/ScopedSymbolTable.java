@@ -1,5 +1,7 @@
 package minic.semantic;
 
+import java.util.Collection;
+
 public class ScopedSymbolTable {
 
     private Scope currentScope;
@@ -31,5 +33,12 @@ public class ScopedSymbolTable {
 
     public Symbol lookup(String name) {
         return resolve(name);
+    }
+
+    public boolean isGlobalScope() {
+        return currentScope.getParent() == null;
+    }
+    public Collection<Symbol> getSymbols() {
+        return currentScope.getSymbols();
     }
 }

@@ -2,6 +2,7 @@ package minic.semantic;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Collection;
 
 public class Scope {
 
@@ -33,5 +34,8 @@ public class Scope {
             return parent.resolve(name);
         }
         return null;
+    }
+    public Collection<Symbol> getSymbols() {
+        return symbols.values();
     }
 }
