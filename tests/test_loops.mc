@@ -1,6 +1,9 @@
 int main() {
     int i;
-    for (i = 1; i <= 3; i = i + 1) {
+    i = 0;
+    while (i < 10) {
+        int x;
+        x = i;
         i = i + 1;
     }
     return i;

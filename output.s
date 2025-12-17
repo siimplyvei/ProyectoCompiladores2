@@ -5,19 +5,17 @@ __strbuf: .space 256
 main:
 addi $sp, $sp, -32
 sw $ra, 28($sp)
-la $a0, __strbuf
-li $a1, 256
-jal __read_string
-la $t0, __strbuf
-addi $t1, $sp, -4
-sw $t0, 0($t1)
-addi $t2, $sp, -4
-lw $t3, 0($t2)
-move $a0, $t3
-jal __print_string
-move $t4, $v0
-li $t5, 0
-move $v0, $t5
+li $t0, 7
+sw $t0, -4($sp)
+addi $t1, $sp, -8
+sw $t2, 0($t1)
+addi $t3, $sp, -8
+lw $t4, 0($t3)
+addi $t5, $sp, -12
+sw $t4, 0($t5)
+addi $t6, $sp, -12
+lw $t7, 0($t6)
+move $v0, $t7
 li $v0, 10
 syscall
 

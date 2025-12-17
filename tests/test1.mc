@@ -1,6 +1,7 @@
 int main() {
-    string s;
-    s = readString();
-    printString(s);
-    return 0;
+    int a;
+    int b;
+    a = 3 + 4;
+    b = a;
+    return b;
 }

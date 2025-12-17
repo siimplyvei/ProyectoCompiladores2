@@ -6,6 +6,9 @@ import org.antlr.v4.runtime.tree.*;
 import minic.ir.IRGenerator;
 import minic.mips.MIPSGenerator;
 import minic.semantic.*;
+import minic.ir.IROptimizer;
+import java.util.List;
+import minic.ir.IRInstr;
 
 
 public class Main {
@@ -34,18 +37,49 @@ public class Main {
         System.out.println("✔ Analisis semantico finalizado sin errores");
 
         ScopedSymbolTable symtab = semantic.getSymbolTable();
+        boolean optimize = false;
+        boolean dumpIR = false;
+        String inputFile = null;
+        String outputFile = "output.s";
+
+        for (int i = 0; i < args.length; i++) {
+            switch (args[i]) {
+                case "-O":
+                    optimize = true;
+                    break;
+                case "--dump-ir":
+                    dumpIR = true;
+                    break;
+                case "-o":
+                    outputFile = args[++i];
+                    break;
+                default:
+                    inputFile = args[i];
+            }
+        }
 
         System.out.println("\n=== IR (Three Address Code) ===");
         IRGenerator ir = new IRGenerator(symtab);
         ir.visit(tree);
 
-        for (var instr : ir.getInstructions()) {
-            System.out.println(instr);
+        List<IRInstr> irCode = ir.getInstructions();
+
+        if (optimize) {
+            System.out.println("=== IR ANTES ===");
+            irCode.forEach(System.out::println);
+
+            irCode = IROptimizer.constantFold(irCode);
+            irCode = IROptimizer.copyPropagation(irCode);
+            irCode = IROptimizer.deadCodeElimination(irCode);
+            irCode = IROptimizer.removeConstantConditions(irCode);
+
+            System.out.println("=== IR DESPUÉS ===");
+            irCode.forEach(System.out::println);
         }
 
         System.out.println("\n=== GENERANDO MIPS ===");
-        MIPSGenerator mips = new MIPSGenerator(ir.getInstructions(), symtab);
-        mips.generate("output.s");
+        MIPSGenerator mips = new MIPSGenerator(irCode, symtab);
+        mips.generate(outputFile);
         System.out.println("✔ Archivo output.s generado");
 
     }

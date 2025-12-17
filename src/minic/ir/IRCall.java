@@ -1,5 +1,7 @@
 package minic.ir;
 
+import java.util.*;
+
 public class IRCall extends IRInstr {
     public final String funcName;
     public final int argc;
@@ -9,6 +11,11 @@ public class IRCall extends IRInstr {
         this.funcName = funcName;
         this.argc = argc;
         this.result = result;
+    }
+
+    @Override
+    public void replaceUses(Map<String, String> copies) {
+        // nada
     }
 
     public String toString() {
