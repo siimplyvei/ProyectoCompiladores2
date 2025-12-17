@@ -1,27 +1,40 @@
 .data
-a: .space 48
-g: .space 4
 .text
 .globl main
 main:
 addi $sp, $sp, -32
 sw $ra, 28($sp)
-la $t0, g
-li $t1, 1
-sw $t1, 0($t0)
-li $t2, 1
-li $t3, 4
-mul $t4, $t2, $t3
-li $t5, 2
-add $t6, $t4, $t5
-li $t7, 4
-mul $t8, $t6, $t7
-la $t9, a
-add $t0, $t9, $t8
-li $t1, 5
-sw $t1, 0($t0)
-la $t2, g
+jal __read_int
+move $t0, $v0
+addi $t1, $sp, -4
+sw $t0, 0($t1)
+addi $t2, $sp, -4
 lw $t3, 0($t2)
-move $v0, $t3
+move $a0, $t3
+jal __print_int
+move $t4, $v0
+li $t5, 0
+move $v0, $t5
 li $v0, 10
 syscall
+
+__print_int:
+li $v0, 1
+syscall
+jr $ra
+__print_char:
+li $v0, 11
+syscall
+jr $ra
+__print_string:
+li $v0, 4
+syscall
+jr $ra
+__read_int:
+li $v0, 5
+syscall
+jr $ra
+__read_char:
+li $v0, 12
+syscall
+jr $ra

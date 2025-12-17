@@ -46,23 +46,28 @@ public class IRGenerator extends MiniCBaseVisitor<String> {
     @Override
     public String visitPrimary(MiniCParser.PrimaryContext ctx) {
 
-        // llamada a función
-        if (ctx.argList() != null) {
+        // ---------- llamada a función ----------
+        if (ctx.Identifier() != null && ctx.getChildCount() >= 2
+                && ctx.getChild(1).getText().equals("(")) {
+
             String fname = ctx.Identifier().getText();
             int argc = 0;
 
-            for (MiniCParser.ExprContext e : ctx.argList().expr()) {
-                String arg = visit(e);
-                instructions.add(new IRParam(arg));
-                argc++;
+            // argumentos (si existen)
+            if (ctx.argList() != null) {
+                for (MiniCParser.ExprContext e : ctx.argList().expr()) {
+                    String arg = visit(e);
+                    emit(new IRParam(arg));
+                    argc++;
+                }
             }
 
             IRTemp ret = new IRTemp();
-            instructions.add(new IRCall(fname, argc, ret));
+            emit(new IRCall(fname, argc, ret));
             return ret.toString();
         }
 
-        // lvalue (variables y arreglos)
+        // ---------- lvalue (variables y arreglos) ----------
         if (ctx.lvalue() != null) {
             boolean old = isLvalue;
             isLvalue = false;      // primary SIEMPRE es rvalue
@@ -71,7 +76,7 @@ public class IRGenerator extends MiniCBaseVisitor<String> {
             return v;
         }
 
-        // literales
+        // ---------- literales ----------
         if (ctx.IntegerConst() != null) {
             return ctx.IntegerConst().getText();
         }
@@ -80,7 +85,11 @@ public class IRGenerator extends MiniCBaseVisitor<String> {
             return ctx.StringLiteral().getText();
         }
 
-        // paréntesis
+        if (ctx.CharConst() != null) {
+            return ctx.CharConst().getText();
+        }
+
+        // ---------- paréntesis ----------
         if (ctx.expr() != null) {
             return visit(ctx.expr());
         }

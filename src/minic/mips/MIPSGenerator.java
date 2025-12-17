@@ -35,6 +35,17 @@ public class MIPSGenerator {
     private final StringBuilder data = new StringBuilder();
     private final Map<String, Integer> globalSizes = new HashMap<>();
 
+    private String mapBuiltin(String name) {
+        switch (name) {
+            case "printInt": return "__print_int";
+            case "printChar": return "__print_char";
+            case "printString": return "__print_string";
+            case "readInt": return "__read_int";
+            case "readChar": return "__read_char";
+            default: return name;
+        }
+    }
+
     public void generate(String filename) throws IOException {
 
         collectGlobals();
@@ -92,13 +103,17 @@ public class MIPSGenerator {
                 paramIndex++;
             } else if (instr instanceof IRCall) {
                 IRCall call = (IRCall) instr;
-                emit("jal " + call.funcName);
+
+                String target = mapBuiltin(call.funcName);
+                emit("jal " + target);
+
                 if (call.result != null) {
                     String reg = getTempReg(call.result.toString());
                     emit("move " + reg + ", $v0");
                 }
+
                 paramIndex = 0;
-            }else if (instr instanceof IRAddrOf) {
+            } else if (instr instanceof IRAddrOf) {
                 emitAddrOf((IRAddrOf) instr);
             } else if (instr instanceof IRLoad) {
                 emitLoad((IRLoad) instr);
@@ -106,10 +121,39 @@ public class MIPSGenerator {
                 emitStore((IRStore) instr);
             }
         }
+        emitRuntime();
 
         try (FileWriter fw = new FileWriter(filename)) {
             fw.write(out.toString());
         }
+    }
+
+    private void emitRuntime() {
+        emit("");
+        emit("__print_int:");
+        emit("li $v0, 1");
+        emit("syscall");
+        emit("jr $ra");
+
+        emit("__print_char:");
+        emit("li $v0, 11");
+        emit("syscall");
+        emit("jr $ra");
+
+        emit("__print_string:");
+        emit("li $v0, 4");
+        emit("syscall");
+        emit("jr $ra");
+
+        emit("__read_int:");
+        emit("li $v0, 5");
+        emit("syscall");
+        emit("jr $ra");
+
+        emit("__read_char:");
+        emit("li $v0, 12");
+        emit("syscall");
+        emit("jr $ra");
     }
 
     private void emitBinOp(IRBinOp op) {
