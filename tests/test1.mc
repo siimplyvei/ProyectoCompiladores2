@@ -1,7 +1,6 @@
 int main() {
-    int a;
-    int b;
-    a = 3 + 4;
-    b = a;
-    return b;
+    print_str("Hola ");
+    print_int(123);
+    println();
+    return 0;
 }

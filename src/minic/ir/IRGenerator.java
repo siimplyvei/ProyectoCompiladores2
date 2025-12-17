@@ -51,9 +51,37 @@ public class IRGenerator extends MiniCBaseVisitor<String> {
                 && ctx.getChild(1).getText().equals("(")) {
 
             String fname = ctx.Identifier().getText();
+
+            // ===== BUILTINS =====
+            if (fname.equals("print_str")) {
+                String arg = visit(ctx.argList().expr(0));
+                emit(new IRParam(arg));
+                emit(new IRCall("__print_string", 1, null));
+                return null;
+            }
+
+            if (fname.equals("print_int")) {
+                String arg = visit(ctx.argList().expr(0));
+                emit(new IRParam(arg));
+                emit(new IRCall("__print_int", 1, null));
+                return null;
+            }
+
+            if (fname.equals("print_char")) {
+                String arg = visit(ctx.argList().expr(0));
+                emit(new IRParam(arg));
+                emit(new IRCall("__print_char", 1, null));
+                return null;
+            }
+
+            if (fname.equals("println")) {
+                emit(new IRCall("__print_newline", 0, null));
+                return null;
+            }
+
+            // ===== FUNCIONES NORMALES =====
             int argc = 0;
 
-            // argumentos (si existen)
             if (ctx.argList() != null) {
                 for (MiniCParser.ExprContext e : ctx.argList().expr()) {
                     String arg = visit(e);

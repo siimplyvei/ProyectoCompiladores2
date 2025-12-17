@@ -29,6 +29,13 @@ public class MIPSGenerator {
         return tempRegs.computeIfAbsent(temp, k -> "$t" + (tempCount++ % 10));
     }
 
+    private final Map<String, String> stringLiterals = new HashMap<>();
+    private int stringCount = 0;
+
+    private String getStringLabel(String value) {
+        return stringLiterals.computeIfAbsent(value, v -> ".str" + (stringCount++));
+    }
+
     private int paramIndex = 0;
     private String currentFunction = null;
 
@@ -47,14 +54,33 @@ public class MIPSGenerator {
         }
     }
 
+    private void collectStringLiterals() {
+        for (IRInstr instr : ir) {
+            if (instr instanceof IRParam) {
+                IRParam p = (IRParam) instr;
+                if (p.value.startsWith("\"")) {
+                    getStringLabel(p.value); // solo registra
+                }
+            }
+        }
+    }
+
     public void generate(String filename) throws IOException {
 
         collectGlobals();
+        collectStringLiterals();
 
         emit(".data");
         emit("__strbuf: .space 256");
+        // globales
         for (Map.Entry<String, Integer> e : globalSizes.entrySet()) {
             emit(e.getKey() + ": .space " + e.getValue());
+        }
+        // strings
+        for (Map.Entry<String, String> e : stringLiterals.entrySet()) {
+            String raw = e.getKey();     // incluye las comillas
+            String label = e.getValue();
+            emit(label + ": .asciiz " + raw);
         }
 
         emit(".text");
@@ -100,8 +126,18 @@ public class MIPSGenerator {
                 currentFunction = null;
             } else if (instr instanceof IRParam) {
                 IRParam p = (IRParam) instr;
-                String reg = loadOperand(p.value);
-                emit("move $a" + paramIndex + ", " + reg);
+
+                // ---- STRING LITERAL ----
+                if (p.value.startsWith("\"")) {
+                    String label = getStringLabel(p.value);
+                    emit("la $a" + paramIndex + ", " + label);
+                }
+                // ---- int / char / variable (comportamiento original) ----
+                else {
+                    String reg = loadOperand(p.value);
+                    emit("move $a" + paramIndex + ", " + reg);
+                }
+
                 paramIndex++;
             } else if (instr instanceof IRCall) {
                 IRCall call = (IRCall) instr;
@@ -175,6 +211,12 @@ public class MIPSGenerator {
         emit("li $v0, 8");
         emit("syscall");
         emit("jr $ra");
+
+        emit("__print_newline:");
+        emit("li $a0, 10");   // '\n'
+        emit("li $v0, 11");   // print_char
+        emit("syscall");
+        emit("jr $ra");
     }
 
     private void emitBinOp(IRBinOp op) {
@@ -217,6 +259,10 @@ public class MIPSGenerator {
             case ">=":
                 emit("slt " + dest + ", " + left + ", " + right);
                 emit("xori " + dest + ", " + dest + ", 1");
+                break;
+            case "%":
+                emit("div " + left + ", " + right);
+                emit("mfhi " + dest);
                 break;
         }
     }
@@ -291,6 +337,13 @@ public class MIPSGenerator {
     }
 
     private String loadOperand(String op) {
+
+        // string literal
+        if (op.startsWith("\"")) {
+            String label = getStringLabel(op);
+            emit("la $t8, " + label);
+            return "$t8";
+        }
 
         // constante
         if (op.matches("\\d+")) {
