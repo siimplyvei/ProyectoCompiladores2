@@ -157,13 +157,10 @@ public class SemanticVisitor extends MiniCBaseVisitor<String> {
 
     @Override
     public String visitAssignStmt(MiniCParser.AssignStmtContext ctx) {
-        String varName = ctx.lvalue().Identifier().getText();
+        // 🔥 FORZAR validación completa del lvalue
+        visit(ctx.lvalue());
 
-        Symbol s = symtab.resolve(varName);
-        if (s == null) {
-            error("Variable no declarada: " + varName);
-        }
-
+        // validar expresión RHS
         visit(ctx.expr());
         return null;
     }

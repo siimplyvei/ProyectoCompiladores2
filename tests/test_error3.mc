@@ -1,8 +1,6 @@
-void foo(int x, int y) {
-    return;
-}
+int a[10][10];
 
 int main() {
-    foo(5);
+    a[1] = 5
     return 0;
 }

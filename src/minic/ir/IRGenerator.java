@@ -2,11 +2,10 @@ package minic.ir;
 
 import minic.*;
 import org.antlr.v4.runtime.tree.ParseTree;
+import org.antlr.v4.runtime.tree.TerminalNode;
 import java.util.ArrayList;
 import java.util.List;
-import minic.semantic.Symbol;
-import minic.semantic.ArraySymbol;
-import minic.semantic.ScopedSymbolTable;
+import minic.semantic.*;
 
 public class IRGenerator extends MiniCBaseVisitor<String> {
     private final List<IRInstr> instructions = new ArrayList<>();
@@ -90,7 +89,7 @@ public class IRGenerator extends MiniCBaseVisitor<String> {
     @Override
     public String visitLvalue(MiniCParser.LvalueContext ctx) {
         String name = ctx.Identifier().getText();
-        Symbol sym = symtab.lookup(name);
+        Symbol sym = symtab.resolve(name);
 
         // variable simple
         if (ctx.expr().isEmpty()) {
@@ -155,19 +154,20 @@ public class IRGenerator extends MiniCBaseVisitor<String> {
 
     @Override
     public String visitDeclaration(MiniCParser.DeclarationContext ctx) {
-        String name = ctx.declaratorList().declarator(0).Identifier().getText();
-        Symbol sym = symtab.lookup(name);
+        String type = ctx.typeSpecifier().getText();
 
-        // 👇 SI ESTAMOS EN SCOPE GLOBAL
-        if (symtab.isGlobalScope()) {
-            int size = 4; // int simple
-            if (sym instanceof ArraySymbol) {
-                ArraySymbol arr = (ArraySymbol) sym;
-                int total = 1;
-                for (int d = 0; d < arr.getDimensionCount(); d++) total *= arr.getSize(d);
-                size = total * 4;
+        for (MiniCParser.DeclaratorContext d : ctx.declaratorList().declarator()) {
+            String name = d.Identifier().getText();
+
+            if (d.IntegerConst().isEmpty()) {
+                symtab.define(new VariableSymbol(name, type));
+            } else {
+                List<Integer> dims = new ArrayList<>();
+                for (TerminalNode t : d.IntegerConst()) {
+                    dims.add(Integer.parseInt(t.getText()));
+                }
+                symtab.define(new ArraySymbol(name, type, dims));
             }
-            instructions.add(new IRGlobalDecl(name, size));
         }
         return null;
     }
@@ -211,10 +211,12 @@ public class IRGenerator extends MiniCBaseVisitor<String> {
 
     @Override
     public String visitCompoundStmt(MiniCParser.CompoundStmtContext ctx) {
-        symtab.enterScope(); // 👈 NUEVO BLOQUE
+        symtab.enterScope();
+
         for (MiniCParser.DeclarationContext d : ctx.declaration()) visit(d);
         for (MiniCParser.StatementContext s : ctx.statement()) visit(s);
-        symtab.exitScope(); // 👈 FIN BLOQUE
+
+        symtab.exitScope();
         return null;
     }
 
@@ -267,17 +269,27 @@ public class IRGenerator extends MiniCBaseVisitor<String> {
         IRLabel start = new IRLabel();
         IRLabel end = new IRLabel();
 
+        // Añadir la etiqueta de inicio del bucle
         instructions.add(start);
 
-        String cond = visit(ctx.expr());
+        // Evaluar la condición y obtener un temporal
+        String condExpr = visit(ctx.expr());
 
-        if (cond == null) {
-            throw new RuntimeException("Condición while no evaluada");
+        // Verificación de seguridad: condExpr no debe ser null ni vacío
+        if (condExpr == null || condExpr.isEmpty()) {
+            throw new RuntimeException("Condición while vacía");
         }
 
-        instructions.add(new IRIfZ(cond, end));
+        // Generar la instrucción ifz usando el temporal correcto
+        instructions.add(new IRIfZ(condExpr, end));
+
+        // Generar instrucciones del cuerpo del bucle
         visit(ctx.statement());
+
+        // Saltar al inicio para continuar el bucle
         instructions.add(new IRGoto(start));
+
+        // Etiqueta de fin del bucle
         instructions.add(end);
 
         return null;
@@ -338,11 +350,12 @@ public class IRGenerator extends MiniCBaseVisitor<String> {
 
     @Override
     public String visitFuncDef(MiniCParser.FuncDefContext ctx) {
-        String fname = ctx.Identifier().getText();
-        instructions.add(new IRFuncBegin(fname));
+        instructions.add(new IRFuncBegin(ctx.Identifier().getText()));
+
         symtab.enterScope();
         visit(ctx.compoundStmt());
         symtab.exitScope();
+
         instructions.add(new IRFuncEnd());
         return null;
     }

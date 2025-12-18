@@ -25,7 +25,6 @@ public class Main {
         MiniCLexer lexer = new MiniCLexer(input);
         CommonTokenStream tokens = new CommonTokenStream(lexer);
         MiniCParser parser = new MiniCParser(tokens);
-
         ParseTree tree = parser.program();
 
         //System.out.println("=== ARBOL SINTACTICO ===");
@@ -34,7 +33,9 @@ public class Main {
         System.out.println("=== AST ===");
         ASTPrinter printer = new ASTPrinter();
         SemanticVisitor semantic = new SemanticVisitor();
-        printer.visit(tree);
+
+        printer.visit(tree);        // solo imprime
+        semantic.visit(tree);       // 🔥 EJECUTA el análisis semántico real
 
         System.out.println("✔ Analisis semantico finalizado sin errores");
 
