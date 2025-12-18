@@ -68,10 +68,12 @@ public class Main {
             System.out.println("=== IR ANTES ===");
             irCode.forEach(System.out::println);
 
-            irCode = IROptimizer.constantFold(irCode);
-            irCode = IROptimizer.copyPropagation(irCode);
-            irCode = IROptimizer.deadCodeElimination(irCode);
-            irCode = IROptimizer.removeConstantConditions(irCode);
+            if (optimize){
+                irCode = IROptimizer.constantFold(irCode);
+                irCode = IROptimizer.copyPropagation(irCode);
+                irCode = IROptimizer.deadCodeElimination(irCode);
+                //irCode = IROptimizer.removeConstantConditions(irCode);
+            }
 
             System.out.println("=== IR DESPUÉS ===");
             irCode.forEach(System.out::println);

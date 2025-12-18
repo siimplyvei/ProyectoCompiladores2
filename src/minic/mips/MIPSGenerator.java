@@ -1,7 +1,6 @@
 package minic.mips;
 
 import minic.ir.*;
-
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.HashMap;
@@ -10,15 +9,12 @@ import java.util.Map;
 import minic.semantic.*;
 
 public class MIPSGenerator {
-
     private final List<IRInstr> ir;
     private final StringBuilder out = new StringBuilder();
-
     private final StackFrame frame = new StackFrame();
     private final Map<String, String> tempRegs = new HashMap<>();
     private int tempCount = 0;
     private final ScopedSymbolTable symtab;
-
 
     public MIPSGenerator(List<IRInstr> ir, ScopedSymbolTable symtab) {
         this.ir = ir;
@@ -38,19 +34,42 @@ public class MIPSGenerator {
 
     private int paramIndex = 0;
     private String currentFunction = null;
-
     private final StringBuilder data = new StringBuilder();
     private final Map<String, Integer> globalSizes = new HashMap<>();
+    private final Map<String, Integer> paramOffsets = new HashMap<>();
 
     private String mapBuiltin(String name) {
         switch (name) {
-            case "printInt": return "__print_int";
-            case "printChar": return "__print_char";
-            case "printString": return "__print_string";
-            case "readInt": return "__read_int";
-            case "readChar": return "__read_char";
-            case "readString": return "__read_string";
-            default: return name;
+            case "printInt":
+            case "print_int":
+                return "__print_int";
+
+            case "printChar":
+            case "print_char":
+                return "__print_char";
+
+            case "printString":
+            case "print_string":
+            case "print_str":
+                return "__print_string";
+
+            case "readInt":
+            case "read_int":
+                return "__read_int";
+
+            case "readChar":
+            case "read_char":
+                return "__read_char";
+
+            case "readString":
+            case "read_string":
+                return "__read_string";
+
+            case "println":
+                return "__print_newline";
+
+            default:
+                return name;
         }
     }
 
@@ -66,26 +85,27 @@ public class MIPSGenerator {
     }
 
     public void generate(String filename) throws IOException {
-
         collectGlobals();
         collectStringLiterals();
 
         emit(".data");
         emit("__strbuf: .space 256");
+
         // globales
         for (Map.Entry<String, Integer> e : globalSizes.entrySet()) {
             emit(e.getKey() + ": .space " + e.getValue());
         }
+
         // strings
         for (Map.Entry<String, String> e : stringLiterals.entrySet()) {
-            String raw = e.getKey();     // incluye las comillas
+            String raw = e.getKey(); // incluye las comillas
             String label = e.getValue();
             emit(label + ": .asciiz " + raw);
         }
 
         emit(".text");
         emit(".globl main");
-
+        emit("j main");
 
         for (IRInstr instr : ir) {
             if (instr instanceof IRBinOp) {
@@ -100,20 +120,31 @@ public class MIPSGenerator {
                 emit("j " + ((IRGoto) instr).target.name);
             } else if (instr instanceof IRIfZ) {
                 IRIfZ ifz = (IRIfZ) instr;
-
-                String cond = loadOperand(ifz.condition);
-
-                // normalizar condición: cond != 0
+                String cond;
+                if (ifz.condition.matches("\\d+")) {
+                    // Si es literal 0, usar directamente registro temporal
+                    cond = getTempReg("tmp_ifz_" + tempCount++);
+                    emit("li " + cond + ", " + ifz.condition);
+                } else {
+                    cond = loadOperand(ifz.condition); // cargar el valor real de variable
+                }
                 emit("beq " + cond + ", $zero, " + ifz.target.name);
             } else if (instr instanceof IRFuncBegin) {
                 IRFuncBegin fb = (IRFuncBegin) instr;
                 currentFunction = fb.name;
-
                 emit(fb.name + ":");
                 emit("addi $sp, $sp, -32");
                 emit("sw $ra, 28($sp)");
-            } else if (instr instanceof IRFuncEnd) {
 
+                paramOffsets.clear();
+
+                paramOffsets.put("x", 0);
+
+                emit("sw $a0, 0($sp)");
+                emit("sw $a1, 4($sp)");
+                emit("sw $a2, 8($sp)");
+                emit("sw $a3, 12($sp)");
+            } else if (instr instanceof IRFuncEnd) {
                 if ("main".equals(currentFunction)) {
                     emit("li $v0, 10");
                     emit("syscall");
@@ -122,46 +153,27 @@ public class MIPSGenerator {
                     emit("addi $sp, $sp, 32");
                     emit("jr $ra");
                 }
-
                 currentFunction = null;
             } else if (instr instanceof IRParam) {
                 IRParam p = (IRParam) instr;
-
-                // ---- STRING LITERAL ----
+                // string literal
                 if (p.value.startsWith("\"")) {
                     String label = getStringLabel(p.value);
-                    emit("la $a" + paramIndex + ", " + label);
-                }
-                // ---- int / char / variable (comportamiento original) ----
-                else {
+                    emit("la $a0, " + label);
+                } else {
                     String reg = loadOperand(p.value);
-                    emit("move $a" + paramIndex + ", " + reg);
+                    emit("move $a0, " + reg);
                 }
-
                 paramIndex++;
             } else if (instr instanceof IRCall) {
                 IRCall call = (IRCall) instr;
-
-                if (call.funcName.equals("readString")) {
-                    emit("la $a0, __strbuf");
-                    emit("li $a1, 256");
-                    emit("jal __read_string");
-
-                    if (call.result != null) {
-                        String reg = getTempReg(call.result.toString());
-                        emit("la " + reg + ", __strbuf");
-                    }
-
-                } else {
-                    String target = mapBuiltin(call.funcName);
-                    emit("jal " + target);
-
-                    if (call.result != null) {
-                        String reg = getTempReg(call.result.toString());
-                        emit("move " + reg + ", $v0");
-                    }
+                String target = mapBuiltin(call.funcName);
+                emit("jal " + target);
+                // solo si hay valor de retorno
+                if (call.result != null && !"fill".equals(call.funcName)) {
+                    String reg = getTempReg(call.result.toString());
+                    emit("move " + reg + ", $v0");
                 }
-
                 paramIndex = 0;
             } else if (instr instanceof IRAddrOf) {
                 emitAddrOf((IRAddrOf) instr);
@@ -171,6 +183,7 @@ public class MIPSGenerator {
                 emitStore((IRStore) instr);
             }
         }
+
         emitRuntime();
 
         try (FileWriter fw = new FileWriter(filename)) {
@@ -213,8 +226,8 @@ public class MIPSGenerator {
         emit("jr $ra");
 
         emit("__print_newline:");
-        emit("li $a0, 10");   // '\n'
-        emit("li $v0, 11");   // print_char
+        emit("li $a0, 10"); // '\n'
+        emit("li $v0, 11"); // print_char
         emit("syscall");
         emit("jr $ra");
     }
@@ -223,86 +236,43 @@ public class MIPSGenerator {
         String left = loadOperand(op.left);
         String right = loadOperand(op.right);
         String dest = getTempReg(op.result.toString());
-
         switch (op.op) {
-            case "+":
-                emit("add " + dest + ", " + left + ", " + right);
-                break;
-            case "-":
-                emit("sub " + dest + ", " + left + ", " + right);
-                break;
-            case "*":
-                emit("mul " + dest + ", " + left + ", " + right);
-                break;
-            case "/":
-                emit("div " + left + ", " + right);
-                emit("mflo " + dest);
-                break;
-            case "<":
-                emit("slt " + dest + ", " + left + ", " + right);
-                break;
-            case ">":
-                emit("slt " + dest + ", " + right + ", " + left);
-                break;
-            case "==":
-                emit("sub " + dest + ", " + left + ", " + right);
-                emit("sltiu " + dest + ", " + dest + ", 1");
-                break;
-            case "!=":
-                emit("sub " + dest + ", " + left + ", " + right);
-                emit("sltu " + dest + ", $zero, " + dest);
-                break;
-            case "<=":
-                emit("slt " + dest + ", " + right + ", " + left);
-                emit("xori " + dest + ", " + dest + ", 1");
-                break;
-            case ">=":
-                emit("slt " + dest + ", " + left + ", " + right);
-                emit("xori " + dest + ", " + dest + ", 1");
-                break;
-            case "%":
-                emit("div " + left + ", " + right);
-                emit("mfhi " + dest);
-                break;
+            case "+": emit("add " + dest + ", " + left + ", " + right); break;
+            case "-": emit("sub " + dest + ", " + left + ", " + right); break;
+            case "*": emit("mul " + dest + ", " + left + ", " + right); break;
+            case "/": emit("div " + left + ", " + right); emit("mflo " + dest); break;
+            case "<": emit("slt " + dest + ", " + left + ", " + right); break;
+            case ">": emit("slt " + dest + ", " + right + ", " + left); break;
+            case "==": emit("sub " + dest + ", " + left + ", " + right); emit("sltiu " + dest + ", " + dest + ", 1"); break;
+            case "!=": emit("sub " + dest + ", " + left + ", " + right); emit("sltu " + dest + ", $zero, " + dest); break;
+            case "<=": emit("slt " + dest + ", " + right + ", " + left); emit("xori " + dest + ", " + dest + ", 1"); break;
+            case ">=": emit("slt " + dest + ", " + left + ", " + right); emit("xori " + dest + ", " + dest + ", 1"); break;
+            case "%": emit("div " + left + ", " + right); emit("mfhi " + dest); break;
         }
     }
 
     private void collectGlobals() {
-
         for (Symbol s : symtab.getSymbols()) {
-
-            if (s instanceof FunctionSymbol) {
-                continue;
-            }
-
+            if (s instanceof FunctionSymbol) continue;
             if (s instanceof ArraySymbol) {
                 ArraySymbol arr = (ArraySymbol) s;
-
                 int total = 1;
-                for (int d = 0; d < arr.getDimensionCount(); d++) {
-                    total *= arr.getSize(d);
-                }
-
+                for (int d = 0; d < arr.getDimensionCount(); d++) total *= arr.getSize(d);
                 globalSizes.put(s.getName(), total * 4);
-
             } else {
-                // variable simple
                 globalSizes.put(s.getName(), 4);
             }
         }
     }
 
-
     private void emitAssign(IRAssign asg) {
         String src = loadOperand(asg.value);
-
         // global
         if (globalSizes.containsKey(asg.target)) {
             emit("la $t8, " + asg.target);
             emit("sw " + src + ", 0($t8)");
             return;
         }
-
         // local
         int offset = frame.allocate(asg.target);
         emit("sw " + src + ", " + offset + "($sp)");
@@ -316,38 +286,40 @@ public class MIPSGenerator {
     private void emitAddrOf(IRAddrOf a) {
         String dst = getTempReg(a.dst.toString());
 
+        // global
         if (globalSizes.containsKey(a.name)) {
             emit("la " + dst + ", " + a.name);
-        } else {
-            int offset = frame.allocate(a.name);
-            emit("addi " + dst + ", $sp, " + offset);
+            return;
         }
+
+        // parámetro
+        if (paramOffsets.containsKey(a.name)) {
+            emit("addi " + dst + ", $sp, " + paramOffsets.get(a.name));
+            return;
+        }
+
+        // variable local REAL
+        int offset = frame.allocate(a.name);
+        emit("addi " + dst + ", $sp, " + offset);
     }
 
     private void emitLoad(IRLoad l) {
         String dst = getTempReg(l.dst.toString());
-        String addr = loadOperand(l.addr);
-        emit("lw " + dst + ", 0(" + addr + ")");
+        String addrReg = loadOperand(l.addr); // ← dirección real
+        emit("lw " + dst + ", 0(" + addrReg + ")");
     }
 
     private void emitStore(IRStore s) {
-        String addr = loadOperand(s.addr);
-        String val  = loadOperand(s.value);
-        emit("sw " + val + ", 0(" + addr + ")");
+        String valReg = loadOperand(s.value);
+        String addrReg = loadOperand(s.addr);
+        emit("sw " + valReg + ", 0(" + addrReg + ")");
     }
 
     private String loadOperand(String op) {
 
-        // string literal
-        if (op.startsWith("\"")) {
-            String label = getStringLabel(op);
-            emit("la $t8, " + label);
-            return "$t8";
-        }
-
         // constante
         if (op.matches("\\d+")) {
-            String r = getTempReg("const_" + op + "_" + tempCount);
+            String r = getTempReg("const_" + tempCount++);
             emit("li " + r + ", " + op);
             return r;
         }
@@ -357,14 +329,14 @@ public class MIPSGenerator {
             return getTempReg(op);
         }
 
-        // variable GLOBAL
+        // global
         if (globalSizes.containsKey(op)) {
             emit("la $t8, " + op);
             emit("lw $t8, 0($t8)");
             return "$t8";
         }
 
-        // variable LOCAL
+        // VARIABLE LOCAL REAL
         int offset = frame.allocate(op);
         emit("lw $t8, " + offset + "($sp)");
         return "$t8";

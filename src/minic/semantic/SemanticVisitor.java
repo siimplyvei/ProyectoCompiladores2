@@ -93,9 +93,19 @@ public class SemanticVisitor extends MiniCBaseVisitor<String> {
         // 🔽 scope de función
         symtab.enterScope();
 
-        // parámetros (si existen)
+        // ✅ DEFINIR PARÁMETROS COMO VARIABLES LOCALES
         if (ctx.paramList() != null) {
-            visit(ctx.paramList());
+            for (MiniCParser.ParamContext p : ctx.paramList().param()) {
+
+                String paramType = p.typeSpecifier().getText();
+                String paramName = p.Identifier().getText();
+
+                VariableSymbol paramSym = new VariableSymbol(paramName, paramType);
+
+                if (!symtab.define(paramSym)) {
+                    error("Parámetro redeclarado: " + paramName);
+                }
+            }
         }
 
         // cuerpo

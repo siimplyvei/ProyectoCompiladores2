@@ -10,11 +10,10 @@ public class StackFrame {
 
     // Reserva espacio para una variable local
     public int allocate(String name) {
-        if (!locals.containsKey(name)) {
-            offset -= 4; // stack crece hacia abajo
-            locals.put(name, offset);
-        }
-        return locals.get(name);
+        if (locals.containsKey(name)) return locals.get(name);
+        offset -= 4;
+        locals.put(name, offset);
+        return offset;
     }
 
     public int getOffset(String name) {
