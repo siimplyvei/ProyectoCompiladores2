@@ -9,6 +9,7 @@ import minic.semantic.*;
 import minic.ir.IROptimizer;
 import java.util.List;
 import minic.ir.IRInstr;
+import minic.ast.*;
 
 
 public class Main {
@@ -27,12 +28,13 @@ public class Main {
 
         ParseTree tree = parser.program();
 
-        System.out.println("=== ARBOL SINTACTICO ===");
-        System.out.println(tree.toStringTree(parser));
+        //System.out.println("=== ARBOL SINTACTICO ===");
+        //System.out.println(tree.toStringTree(parser));
 
-        System.out.println("\n=== ANALISIS SEMANTICO ===");
+        System.out.println("=== AST ===");
+        ASTPrinter printer = new ASTPrinter();
         SemanticVisitor semantic = new SemanticVisitor();
-        semantic.visit(tree);
+        printer.visit(tree);
 
         System.out.println("✔ Analisis semantico finalizado sin errores");
 

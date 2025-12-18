@@ -1,5 +1,6 @@
 int main() {
-    int x, sum = 0;
+    int x, sum;
+    sum = 0;
 
     print_str("Ingrese numeros (0 para terminar):\n");
 
