@@ -21,18 +21,18 @@ sw $t5, 0($t3)
 L1:
 addi $t6, $sp, -8
 lw $t7, 0($t6)
-addi $t8, $sp, -12
+addi $t8, $sp, 0
 lw $t9, 0($t8)
 slt $t0, $t9, $t7
 xori $t0, $t0, 1
 beq $t0, $zero, L2
-addi $t1, $sp, -16
+addi $t1, $sp, -12
 li $t3, 1
 sw $t3, 0($t1)
 L3:
-addi $t4, $sp, -16
+addi $t4, $sp, -12
 lw $t5, 0($t4)
-addi $t6, $sp, -12
+addi $t6, $sp, 0
 lw $t7, 0($t6)
 slt $t8, $t7, $t5
 xori $t8, $t8, 1
@@ -48,7 +48,7 @@ div $t6, $t8
 mfhi $t9
 addi $t0, $sp, -8
 lw $t1, 0($t0)
-addi $t2, $sp, -16
+addi $t2, $sp, -12
 lw $t3, 0($t2)
 li $t5, 10
 mul $t6, $t1, $t5
@@ -64,11 +64,11 @@ li $t6, 1
 add $t7, $t4, $t6
 addi $t8, $sp, -4
 sw $t7, 0($t8)
-addi $t9, $sp, -16
+addi $t9, $sp, -12
 lw $t0, 0($t9)
 li $t2, 1
 add $t3, $t0, $t2
-addi $t4, $sp, -16
+addi $t4, $sp, -12
 sw $t3, 0($t4)
 j L3
 L4:
@@ -103,11 +103,11 @@ li $t9, 5
 slt $t0, $t9, $t7
 xori $t0, $t0, 1
 beq $t0, $zero, L6
-addi $t1, $sp, -16
+addi $t1, $sp, -12
 li $t3, 1
 sw $t3, 0($t1)
 L7:
-addi $t4, $sp, -16
+addi $t4, $sp, -12
 lw $t5, 0($t4)
 li $t7, 5
 slt $t8, $t7, $t5
@@ -115,7 +115,7 @@ xori $t8, $t8, 1
 beq $t8, $zero, L8
 addi $t9, $sp, -8
 lw $t0, 0($t9)
-addi $t1, $sp, -16
+addi $t1, $sp, -12
 lw $t2, 0($t1)
 li $t4, 10
 mul $t5, $t0, $t4
@@ -129,11 +129,11 @@ move $a0, $t2
 jal __print_int
 la $a0, .str0
 jal __print_string
-addi $t3, $sp, -16
+addi $t3, $sp, -12
 lw $t4, 0($t3)
 li $t6, 1
 add $t7, $t4, $t6
-addi $t8, $sp, -16
+addi $t8, $sp, -12
 sw $t7, 0($t8)
 j L7
 L8:

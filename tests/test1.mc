@@ -1,12 +1,12 @@
 int m[10][10];
 
-void fill(int n) {
+void fill(int x) {
     int i;
     int j;
     int val;
     val = 1;
-    for (i = 1; i <= n; i = i + 1) {
-        for (j = 1; j <= n; j = j + 1) {
+    for (i = 1; i <= x; i = i + 1) {
+        for (j = 1; j <= x; j = j + 1) {
             m[i][j] = (val * 3 + 7) % 20;
             val = val + 1;
         }

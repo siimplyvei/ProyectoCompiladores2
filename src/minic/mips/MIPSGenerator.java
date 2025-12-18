@@ -310,8 +310,8 @@ public class MIPSGenerator {
     }
 
     private void emitStore(IRStore s) {
-        String valReg = loadOperand(s.value);
         String addrReg = loadOperand(s.addr);
+        String valReg = loadOperand(s.value);
         emit("sw " + valReg + ", 0(" + addrReg + ")");
     }
 
