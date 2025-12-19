@@ -34,8 +34,8 @@ public class Main {
         ASTPrinter printer = new ASTPrinter();
         SemanticVisitor semantic = new SemanticVisitor();
 
-        printer.visit(tree);        // solo imprime
-        semantic.visit(tree);       // 🔥 EJECUTA el análisis semántico real
+        printer.visit(tree);
+        semantic.visit(tree);
 
         System.out.println("✔ Analisis semantico finalizado sin errores");
 

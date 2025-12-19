@@ -25,12 +25,10 @@ public class SemanticVisitor extends MiniCBaseVisitor<String> {
     @Override
     public String visitProgram(MiniCParser.ProgramContext ctx) {
 
-        // 1️⃣ Registrar variables globales
         for (MiniCParser.GlobalDeclContext g : ctx.globalDecl()) {
             visit(g);
         }
 
-        // 2️⃣ Registrar funciones
         for (MiniCParser.FuncDefContext f : ctx.funcDef()) {
             visit(f);
         }
@@ -90,10 +88,10 @@ public class SemanticVisitor extends MiniCBaseVisitor<String> {
 
         currentFunctionReturnType = returnType;
 
-        // 🔽 scope de función
+
         symtab.enterScope();
 
-        // ✅ DEFINIR PARÁMETROS COMO VARIABLES LOCALES
+
         if (ctx.paramList() != null) {
             for (MiniCParser.ParamContext p : ctx.paramList().param()) {
 
@@ -111,7 +109,6 @@ public class SemanticVisitor extends MiniCBaseVisitor<String> {
         // cuerpo
         visit(ctx.compoundStmt());
 
-        // 🔼 salir del scope
         symtab.exitScope();
 
         currentFunctionReturnType = null;
@@ -157,7 +154,6 @@ public class SemanticVisitor extends MiniCBaseVisitor<String> {
 
     @Override
     public String visitAssignStmt(MiniCParser.AssignStmtContext ctx) {
-        // 🔥 FORZAR validación completa del lvalue
         visit(ctx.lvalue());
 
         // validar expresión RHS
@@ -210,12 +206,10 @@ public class SemanticVisitor extends MiniCBaseVisitor<String> {
         int usedDims = ctx.expr().size();
         int declaredDims = arr.getDimensionCount();
 
-        // ❌ demasiados índices
         if (usedDims > declaredDims) {
             error("Demasiados índices para arreglo " + name);
         }
 
-        // ❌ índices insuficientes (opcional, pero recomendado)
         if (usedDims < declaredDims) {
             error("Faltan índices para arreglo " + name);
         }
@@ -234,7 +228,6 @@ public class SemanticVisitor extends MiniCBaseVisitor<String> {
     @Override
     public String visitCompoundStmt(MiniCParser.CompoundStmtContext ctx) {
 
-        // 🔑 nuevo scope para el bloque
         symtab.enterScope();
 
         // declaraciones locales
