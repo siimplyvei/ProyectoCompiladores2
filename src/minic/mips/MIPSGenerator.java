@@ -286,6 +286,16 @@ public class MIPSGenerator {
     private void emitAddrOf(IRAddrOf a) {
         String dst = getTempReg(a.dst.toString());
 
+        // obtener tamaño real si es array
+        int size = 4; // default int
+        Symbol sym = symtab.resolve(a.name);
+        if (sym instanceof ArraySymbol) {
+            ArraySymbol arr = (ArraySymbol) sym;
+            int total = 1;
+            for (int d = 0; d < arr.getDimensionCount(); d++) total *= arr.getSize(d);
+            size = total * 4;
+        }
+
         // global
         if (globalSizes.containsKey(a.name)) {
             emit("la " + dst + ", " + a.name);
@@ -299,20 +309,36 @@ public class MIPSGenerator {
         }
 
         // variable local REAL
-        int offset = frame.allocate(a.name);
+        int offset = frame.allocate(a.name, size);
         emit("addi " + dst + ", $sp, " + offset);
     }
 
     private void emitLoad(IRLoad l) {
         String dst = getTempReg(l.dst.toString());
-        String addrReg = loadOperand(l.addr); // ← dirección real
-        emit("lw " + dst + ", 0(" + addrReg + ")");
+        String addrReg = loadOperand(l.addr); // addr = dirección base del array
+        if (l.index != null) {
+            String indexReg = loadOperand(l.index); // cargar índice
+            emit("sll " + indexReg + ", " + indexReg + ", 2"); // index*4
+            String addrIndexReg = getTempReg("addr_index_" + tempCount++);
+            emit("add " + addrIndexReg + ", " + addrReg + ", " + indexReg);
+            emit("lw " + dst + ", 0(" + addrIndexReg + ")");
+        } else {
+            emit("lw " + dst + ", 0(" + addrReg + ")");
+        }
     }
 
     private void emitStore(IRStore s) {
-        String addrReg = loadOperand(s.addr);
+        String addrReg = loadOperand(s.addr); // addr = base del array
         String valReg = loadOperand(s.value);
-        emit("sw " + valReg + ", 0(" + addrReg + ")");
+        if (s.index != null) {
+            String indexReg = loadOperand(s.index); // cargar índice
+            emit("sll " + indexReg + ", " + indexReg + ", 2"); // index*4
+            String addrIndexReg = getTempReg("addr_index_" + tempCount++);
+            emit("add " + addrIndexReg + ", " + addrReg + ", " + indexReg);
+            emit("sw " + valReg + ", 0(" + addrIndexReg + ")");
+        } else {
+            emit("sw " + valReg + ", 0(" + addrReg + ")");
+        }
     }
 
     private String loadOperand(String op) {
@@ -337,9 +363,16 @@ public class MIPSGenerator {
         }
 
         // VARIABLE LOCAL REAL
-        int offset = frame.allocate(op);
-        emit("lw $t8, " + offset + "($sp)");
-        return "$t8";
+        if (frame.isArray(op)) { // si es un array
+            int baseOffset = frame.getOffset(op);
+            String r = getTempReg(op + "_base");
+            emit("addi " + r + ", $sp, " + baseOffset);
+            return r;
+        } else { // variable simple
+            int offset = frame.getOffset(op);
+            emit("lw $t8, " + offset + "($sp)");
+            return "$t8";
+        }
     }
 
     private void emit(String s) {

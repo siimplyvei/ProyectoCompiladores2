@@ -6,6 +6,7 @@ public class IRStore extends IRInstr {
 
     public String addr;
     public String value;
+    public String index;
 
     public IRStore(String addr, String value) {
         this.addr = addr;

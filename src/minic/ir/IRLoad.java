@@ -6,6 +6,7 @@ public class IRLoad extends IRInstr {
 
     public IRTemp dst;
     public String addr;
+    public String index;
 
     public IRLoad(IRTemp dst, String addr) {
         this.dst = dst;
